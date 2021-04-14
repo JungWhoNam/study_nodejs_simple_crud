@@ -112,19 +112,23 @@ var app = http.createServer(function (req, res) {
         });
     }
     else if (url.pathname === '/create_process') {
-        var body = '';
-        // asynchronously concat the post data into body
-        req.on('data', data => {
-            body += data;
+        // when you output 'req', you will see '_events'
+        // And under it you see 'on', 'end', 'pause', ...
+        // so here we are telling it to deal with the events 'data' and 'end'.
+
+        // asynchronously concat a chunk of data from a client
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk;
         });
-        // after recieved the data
+        // after recieved the data from a client
         req.on('end', () => {
             var post = qs.parse(body);
             var title = post.title;
             var description = post.description;
-            
+
             fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
-                res.writeHead(302, {Location: `/?id=${title}`});
+                res.writeHead(302, { Location: `/?id=${title}` });
                 res.end();
             });
         });
