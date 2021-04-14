@@ -1,6 +1,32 @@
 var http = require('http');
 var fs = require('fs');
 
+function templateHTML(title, list, body) {
+    return `
+    <!doctype html>
+    <html>
+    <head>
+        <title>${title}</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+        <h1><a href="/">WEB</a></h1>
+        ${list}
+        ${body}
+    </body>
+    </html>
+    `;
+}
+
+function templateList(files) {
+    let list = "<ul>";
+    for (var i = 0; i < files.length; i++) {
+        list += `<li><a href="?id=${files[i]}">${files[i]}</a></li>`;
+    }
+    list += "</ul>"
+    return list;
+}
+
 // "requeset" client -> server
 // "response" server -> client
 var app = http.createServer(function (req, res) {
@@ -19,30 +45,11 @@ var app = http.createServer(function (req, res) {
                     res.end('Directory Not Found');
                 }
                 else {
-                    let title = "Welcome";
-                    let description = "Hello Node.js";
+                    const title = "Welcome";
+                    const description = "Hello Node.js";
+                    const list = templateList(files);
 
-                    let list = "<ul>";
-                    for (var i = 0; i < files.length; i++) {
-                        list += `<li><a href="?id=${files[i]}">${files[i]}</a></li>`;
-                    }
-                    list += "</ul>"
-
-                    var template = `
-                    <!doctype html>
-                    <html>
-                    <head>
-                        <title>${title}</title>
-                        <meta charset="utf-8">
-                    </head>
-                    <body>
-                        <h1><a href="/">WEB</a></h1>
-                        ${list}
-                        <h2>${title}</h2>
-                        <p>${description}</p>
-                    </body>
-                    </html>
-                    `;
+                    const template = templateHTML(title, list, `<h2>${title}</h2><p>${description}</p>`);
 
                     res.writeHead(200);
                     res.end(template);
@@ -57,11 +64,7 @@ var app = http.createServer(function (req, res) {
                     res.end('Directory Not Found');
                 }
                 else {
-                    let list = "<ul>";
-                    for (var i = 0; i < files.length; i++) {
-                        list += `<li><a href="?id=${files[i]}">${files[i]}</a></li>`;
-                    }
-                    list += "</ul>"
+                    const list = templateList(files);
 
                     fs.readFile(`data/${url.searchParams.get('id')}`, 'utf8', (err, data) => {
                         if (err) {
@@ -69,26 +72,12 @@ var app = http.createServer(function (req, res) {
                             res.end('File Not Found');
                         }
                         else {
-                            let title = url.searchParams.get('id');
-                            let description = data;
+                            const title = url.searchParams.get('id');
+                            const description = data;
 
                             // Async 함수이기에 template 을 함수 안에 넣어야함!
-                            var template = `
-                            <!doctype html>
-                            <html>
-                            <head>
-                                <title>${title}</title>
-                                <meta charset="utf-8">
-                            </head>
-                            <body>
-                                <h1><a href="/">WEB</a></h1>
-                                ${list}
-                                <h2>${title}</h2>
-                                <p>${description}</p>
-                            </body>
-                            </html>
-                            `;
-
+                            const template = templateHTML(title, list, `<h2>${title}</h2><p>${description}</p>`);
+                            
                             res.writeHead(200);
                             res.end(template);
                         }
