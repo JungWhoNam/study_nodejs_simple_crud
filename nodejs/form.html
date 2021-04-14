@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=<device-width>, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <!-- 클라이언트에서 사용자가 입력한 정보를 action tag에 입력된 주소로 보냄
+    method 테그는 디폴트로 "get"으로 세팅
+    "get" 방식은 사용자가 입력한 정보를 url의 query data로 보내짐
+    하지만 url은 글씨 제한이 있기에 좋은 방법이 아님
+    따라서 create, update, delete과 같은 요청은 method="post"를 쓰는게 옳음
+    "post" 방식에서 전송되는 정보는 url에 query data로써 전송이 되는게 아니라 사용자에 안보이게 클라이언트에서 서버에 전송됨
+    Network tab > Headers tab > "Form Data" 패널에서 확인 가능 -->
+    <form action="http://localhost:3000/process_create" method="post">
+        <p><input type="text" name="title"></p>
+        <p><textarea name="description"></textarea></p>
+        <p><input type="submit"></p>
+    </form>
+</body>
+</html>
