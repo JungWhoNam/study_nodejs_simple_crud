@@ -10,45 +10,24 @@ var app = http.createServer(function (req, res) {
     const url = new URL(req.url, `http://${req.headers.host}`);
 
     if (url.pathname == '/') {
-        console.log(url.searchParams.get('id'));
         // https://nodejs.org/api/url.html#url_class_urlsearchparams
         if (url.searchParams.get('id') === null) {
-            let title = "Welcome";
-            let description = "Hello Node.js";
-
-            var template = `
-            <!doctype html>
-            <html>
-            <head>
-                <title>${title}</title>
-                <meta charset="utf-8">
-            </head>
-            <body>
-                <h1><a href="/">WEB</a></h1>
-                <ol>
-                    <li><a href="?id=HTML">HTML</a></li>
-                    <li><a href="?id=CSS"">CSS</a></li>
-                    <li><a href="?id=JavaScript">JavaScript</a></li>
-                </ol>
-                <h2>${title}</h2>
-                <p>
-                    ${description}
-                </p>
-            </body>
-            </html>
-            `;
-
-            res.writeHead(200);
-            res.end(template);
-        }
-        else {
-            fs.readFile(`data/${url.searchParams.get('id')}`, 'utf8', (err, data) => {
+            const dirPath = './data';
+            fs.readdir(dirPath, (err, files) => {
                 if (err) {
-                    return res.writeHead(404);
+                    res.writeHead(404);
+                    res.end('Directory Not Found');
                 }
                 else {
-                    let title = url.searchParams.get('id');
-                    // Async 함수이기에 template 을 함수 안에 넣어야함!
+                    let title = "Welcome";
+                    let description = "Hello Node.js";
+
+                    let list = "<ul>";
+                    for (var i = 0; i < files.length; i++) {
+                        list += `<li><a href="?id=${files[i]}">${files[i]}</a></li>`;
+                    }
+                    list += "</ul>"
+
                     var template = `
                     <!doctype html>
                     <html>
@@ -58,21 +37,62 @@ var app = http.createServer(function (req, res) {
                     </head>
                     <body>
                         <h1><a href="/">WEB</a></h1>
-                        <ol>
-                            <li><a href="?id=HTML">HTML</a></li>
-                            <li><a href="?id=CSS"">CSS</a></li>
-                            <li><a href="?id=JavaScript">JavaScript</a></li>
-                        </ol>
+                        ${list}
                         <h2>${title}</h2>
-                        <p>
-                            ${data}
-                        </p>
+                        <p>${description}</p>
                     </body>
                     </html>
                     `;
 
                     res.writeHead(200);
                     res.end(template);
+                }
+            });
+        }
+        else {
+            const dirPath = './data';
+            fs.readdir(dirPath, (err, files) => {
+                if (err) {
+                    res.writeHead(404);
+                    res.end('Directory Not Found');
+                }
+                else {
+                    let list = "<ul>";
+                    for (var i = 0; i < files.length; i++) {
+                        list += `<li><a href="?id=${files[i]}">${files[i]}</a></li>`;
+                    }
+                    list += "</ul>"
+
+                    fs.readFile(`data/${url.searchParams.get('id')}`, 'utf8', (err, data) => {
+                        if (err) {
+                            res.writeHead(404);
+                            res.end('File Not Found');
+                        }
+                        else {
+                            let title = url.searchParams.get('id');
+                            let description = data;
+
+                            // Async 함수이기에 template 을 함수 안에 넣어야함!
+                            var template = `
+                            <!doctype html>
+                            <html>
+                            <head>
+                                <title>${title}</title>
+                                <meta charset="utf-8">
+                            </head>
+                            <body>
+                                <h1><a href="/">WEB</a></h1>
+                                ${list}
+                                <h2>${title}</h2>
+                                <p>${description}</p>
+                            </body>
+                            </html>
+                            `;
+
+                            res.writeHead(200);
+                            res.end(template);
+                        }
+                    });
                 }
             });
         }
