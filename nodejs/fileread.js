@@ -13,10 +13,15 @@ fs.stat(filePath, (error, stats) => {
     }
 });
 
-
 // Sync File Read
 let data;
 if (fs.existsSync(filePath)) {
-    data = fs.readFileSync(filePath, {encoding:'utf8', flag:'r'});
+    data = fs.readFileSync(filePath, { encoding: 'utf8', flag: 'r' });
 }
 console.log('Sync:\n', data);
+
+// get the list of files
+const dirPath = './data';
+fs.readdir(dirPath, (err, files) => {
+    console.log(files);
+});
