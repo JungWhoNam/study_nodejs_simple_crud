@@ -1,33 +1,34 @@
-var http = require('http');
-var fs = require('fs');
-var qs = require('querystring');
+const http = require('http');
+const fs = require('fs');
+const qs = require('querystring');
 
-function templateHTML(title, list, body) {
-    return `
-    <!doctype html>
-    <html>
-    <head>
-        <title>${title}</title>
-        <meta charset="utf-8">
-    </head>
-    <body>
-        <h1><a href="/">WEB</a></h1>
-        ${list}
-        <a href="/create">create</a>
-        ${body}
-    </body>
-    </html>
-    `;
-}
-
-function templateList(files) {
-    let list = "<ul>";
-    for (var i = 0; i < files.length; i++) {
-        list += `<li><a href="/?id=${files[i]}">${files[i]}</a></li>`;
+const template = {
+    HTML:function templateHTML(title, list, body, control) {
+        return `
+        <!doctype html>
+        <html>
+        <head>
+            <title>${title}</title>
+            <meta charset="utf-8">
+        </head>
+        <body>
+            <h1><a href="/">WEB</a></h1>
+            ${list}
+            ${control}
+            ${body}
+        </body>
+        </html>
+        `;
+    },
+    list:function templateList(files) {
+        let list = "<ul>";
+        for (var i = 0; i < files.length; i++) {
+            list += `<li><a href="/?id=${files[i]}">${files[i]}</a></li>`;
+        }
+        list += "</ul>"
+        return list;
     }
-    list += "</ul>"
-    return list;
-}
+};
 
 // "requeset" client -> server
 // "response" server -> client
@@ -48,12 +49,11 @@ var app = http.createServer(function (req, res) {
                 else {
                     const title = "Welcome";
                     const description = "Hello Node.js";
-                    const list = templateList(files);
-
-                    const template = templateHTML(title, list, `<h2>${title}</h2><p>${description}</p>`);
+                    const list = template.list(files);
+                    const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a>`);
 
                     res.writeHead(200);
-                    res.end(template);
+                    res.end(html);
                 }
             });
         }
@@ -65,8 +65,6 @@ var app = http.createServer(function (req, res) {
                     res.end('Directory Not Found');
                 }
                 else {
-                    const list = templateList(files);
-
                     fs.readFile(`data/${url.searchParams.get('id')}`, 'utf8', (err, data) => {
                         if (err) {
                             res.writeHead(404);
@@ -74,13 +72,17 @@ var app = http.createServer(function (req, res) {
                         }
                         else {
                             const title = url.searchParams.get('id');
+                            const list = template.list(files);
                             const description = data;
-
-                            // Async 함수이기에 template 을 함수 안에 넣어야함!
-                            const template = templateHTML(title, list, `<h2>${title}</h2><p>${description}</p>`);
+                            // Async 함수이기에 html을 함수 안에 넣어야함!
+                            const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a> <a href="/update?id=${title}">update</a> 
+                            <form action="/delete_process" method="post">
+                                <input type="hidden" name="id" value="${title}">
+                                <input type="submit" value="delete">
+                            </form>`);
 
                             res.writeHead(200);
-                            res.end(template);
+                            res.end(html);
                         }
                     });
                 }
@@ -96,18 +98,17 @@ var app = http.createServer(function (req, res) {
             }
             else {
                 const title = "WEB - create";
-                const list = templateList(files);
-
-                const template = templateHTML(title, list, `
+                const list = template.list(files);
+                const html = template.HTML(title, list, `
                 <form action="/create_process" method="post">
-                    <p><input type="text" name="title"></p>
-                    <p><textarea name="description"></textarea></p>
+                    <p><input type="text" name="title" placeholder="title"></p>
+                    <p><textarea name="description" placeholder="description"></textarea></p>
                     <p><input type="submit"></p>
                 </form>
-                `);
+                `, `<a href="/create">create</a>`);
 
                 res.writeHead(200);
-                res.end(template);
+                res.end(html);
             }
         });
     }
@@ -133,10 +134,80 @@ var app = http.createServer(function (req, res) {
             });
         });
     }
+    else if (url.pathname === '/update') {
+        const dirPath = './data';
+        fs.readdir(dirPath, (err, files) => {
+            if (err) {
+                res.writeHead(404);
+                res.end('Directory Not Found');
+            }
+            else {
+                fs.readFile(`data/${url.searchParams.get('id')}`, 'utf8', (err, data) => {
+                    if (err) {
+                        res.writeHead(404);
+                        res.end('File Not Found');
+                    }
+                    else {
+                        const title = url.searchParams.get('id');
+                        const list = template.list(files);
+                        const description = data;
+                        const html = template.HTML(title, list, `
+                        <form action="/update_process" method="post">
+                            <input type="hidden" name="id" value=${title}>
+                            <p><input type="text" name="title" placeholder="title" value=${title}></p>
+                            <p><textarea name="description" placeholder="description">${description}</textarea></p>
+                            <p><input type="submit"></p>
+                        </form>
+                        `, `<a href="/create">create</a> <a href="/update?=${title}"></a>`);
+
+                        res.writeHead(200);
+                        res.end(html);
+                    }
+                });
+            }
+        });
+    }
+    else if (url.pathname === '/update_process') {
+        // asynchronously concat a chunk of data from a client
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk;
+        });
+        // after recieved the data from a client
+        req.on('end', () => {
+            var post = qs.parse(body);
+            var id = post.id;
+            var title = post.title;
+            var description = post.description;
+
+            fs.rename(`data/${id}`, `data/${title}`, (err) => {
+                fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
+                    res.writeHead(302, { Location: `/?id=${title}` });
+                    res.end();
+                });
+            });
+        });
+    }
+    else if (url.pathname === '/delete_process') {
+        // asynchronously concat a chunk of data from a client
+        let body = '';
+        req.on('data', chunk => {
+            body += chunk;
+        });
+        // after recieved the data from a client
+        req.on('end', () => {
+            var post = qs.parse(body);
+            var id = post.id;
+
+            fs.unlink(`data/${id}`, (err) => {
+                res.writeHead(302, { Location: "/" });
+                res.end();
+            });
+        });
+    }
     else {
         res.writeHead(404);
         res.end('Not Found');
     }
-
 });
 app.listen(3000);
