@@ -1,0 +1,22 @@
+{
+  "name": "study_nodejs_simple_crud",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JungWhoNam/study_nodejs_simple_crud.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JungWhoNam/study_nodejs_simple_crud/issues"
+  },
+  "homepage": "https://github.com/JungWhoNam/study_nodejs_simple_crud#readme",
+  "dependencies": {
+    "sanitize-html": "^2.3.3"
+  }
+}
