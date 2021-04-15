@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const qs = require('querystring');
 const path = require('path'); // 사용자가 입력할 수 있는 path 세탁용
+const sanitizeHtml = require('sanitize-html');
 const template = require('./libs/template.js');
 
 const dirPath = './data';
@@ -50,10 +51,14 @@ var app = http.createServer(function (req, res) {
                             const title = filteredID;
                             const list = template.list(files);
                             const description = data;
+                            var sanitizedTitle = sanitizeHtml(title);
+                            var sanitizedDescription = sanitizeHtml(description, {
+                              allowedTags:['h1']
+                            });
                             // Async 함수이기에 html을 함수 안에 넣어야함!
-                            const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a> <a href="/update?id=${title}">update</a> 
+                            const html = template.HTML(sanitizedTitle, list, `<h2>${sanitizedTitle}</h2><p>${sanitizedDescription}</p>`, `<a href="/create">create</a> <a href="/update?id=${sanitizedTitle}">update</a> 
                             <form action="/delete_process" method="post">
-                                <input type="hidden" name="id" value="${title}">
+                                <input type="hidden" name="id" value="${sanitizedTitle}">
                                 <input type="submit" value="delete">
                             </form>`);
 
