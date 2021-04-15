@@ -1,7 +1,10 @@
 const http = require('http');
 const fs = require('fs');
 const qs = require('querystring');
+const path = require('path'); // 사용자가 입력할 수 있는 path 세탁용
 const template = require('./libs/template.js');
+
+const dirPath = './data';
 
 // "requeset" client -> server
 // "response" server -> client
@@ -10,10 +13,10 @@ var app = http.createServer(function (req, res) {
     // https://nodejs.org/api/url.html#url_new_url_input_base
     // 첫번째 parameter가 relative 이면 base (두번째 parameter)가 필수
     const url = new URL(req.url, `http://${req.headers.host}`);
+
     if (url.pathname === '/') {
         // https://nodejs.org/api/url.html#url_class_urlsearchparams
         if (url.searchParams.get('id') === null) {
-            const dirPath = './data';
             fs.readdir(dirPath, (err, files) => {
                 if (err) {
                     res.writeHead(404);
@@ -31,20 +34,20 @@ var app = http.createServer(function (req, res) {
             });
         }
         else {
-            const dirPath = './data';
             fs.readdir(dirPath, (err, files) => {
                 if (err) {
                     res.writeHead(404);
                     res.end('Directory Not Found');
                 }
                 else {
-                    fs.readFile(`data/${url.searchParams.get('id')}`, 'utf8', (err, data) => {
+                    const filteredID = path.parse(url.searchParams.get('id')).base;
+                    fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (err, data) => {
                         if (err) {
                             res.writeHead(404);
                             res.end('File Not Found');
                         }
                         else {
-                            const title = url.searchParams.get('id');
+                            const title = filteredID;
                             const list = template.list(files);
                             const description = data;
                             // Async 함수이기에 html을 함수 안에 넣어야함!
@@ -63,7 +66,6 @@ var app = http.createServer(function (req, res) {
         }
     }
     else if (url.pathname === '/create') {
-        const dirPath = './data';
         fs.readdir(dirPath, (err, files) => {
             if (err) {
                 res.writeHead(404);
@@ -97,31 +99,37 @@ var app = http.createServer(function (req, res) {
         });
         // after recieved the data from a client
         req.on('end', () => {
-            var post = qs.parse(body);
-            var title = post.title;
-            var description = post.description;
+            const post = qs.parse(body);
+            const title = path.parse(post.title).base;
+            const description = post.description;
 
-            fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
-                res.writeHead(302, { Location: `/?id=${title}` });
-                res.end();
+            fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
+                if (err) {
+                    res.writeHead(404);
+                    res.end("Failed to save the data");
+                }
+                else {
+                    res.writeHead(302, { Location: `/?id=${title}` });
+                    res.end();
+                }
             });
         });
     }
     else if (url.pathname === '/update') {
-        const dirPath = './data';
         fs.readdir(dirPath, (err, files) => {
             if (err) {
                 res.writeHead(404);
                 res.end('Directory Not Found');
             }
             else {
-                fs.readFile(`data/${url.searchParams.get('id')}`, 'utf8', (err, data) => {
+                const filteredID = path.parse(url.searchParams.get('id')).base;
+                fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (err, data) => {
                     if (err) {
                         res.writeHead(404);
                         res.end('File Not Found');
                     }
                     else {
-                        const title = url.searchParams.get('id');
+                        const title = filteredID;
                         const list = template.list(files);
                         const description = data;
                         const html = template.HTML(title, list, `
@@ -149,12 +157,12 @@ var app = http.createServer(function (req, res) {
         // after recieved the data from a client
         req.on('end', () => {
             var post = qs.parse(body);
-            var id = post.id;
-            var title = post.title;
+            var id = path.parse(post.id).base;
+            var title = path.parse(post.title).base;
             var description = post.description;
 
-            fs.rename(`data/${id}`, `data/${title}`, (err) => {
-                fs.writeFile(`data/${title}`, description, 'utf8', (err) => {
+            fs.rename(`${dirPath}/${id}`, `${dirPath}/${title}`, (err) => {
+                fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
                     res.writeHead(302, { Location: `/?id=${title}` });
                     res.end();
                 });
@@ -170,9 +178,9 @@ var app = http.createServer(function (req, res) {
         // after recieved the data from a client
         req.on('end', () => {
             var post = qs.parse(body);
-            var id = post.id;
+            var id = path.parse(post.id).base;
 
-            fs.unlink(`data/${id}`, (err) => {
+            fs.unlink(`${dirPath}/${id}`, (err) => {
                 res.writeHead(302, { Location: "/" });
                 res.end();
             });
