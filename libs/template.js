@@ -16,10 +16,10 @@ module.exports = {
         </html>
         `;
     },
-    list: function templateList(files) {
+    list: function templateList(topics) {
         let list = "<ul>";
-        for (var i = 0; i < files.length; i++) {
-            list += `<li><a href="/?id=${files[i]}">${files[i]}</a></li>`;
+        for (var i = 0; i < topics.length; i++) {
+            list += `<li><a href="/?id=${topics[i].id}">${topics[i].title}</a></li>`;
         }
         list += "</ul>"
         return list;

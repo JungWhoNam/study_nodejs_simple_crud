@@ -3,9 +3,20 @@ const fs = require('fs');
 const qs = require('querystring');
 const path = require('path'); // 사용자가 입력할 수 있는 path 세탁용
 const sanitizeHtml = require('sanitize-html');
+const mysql = require('mysql');
 const template = require('./libs/template.js');
 
+
 const dirPath = './data';
+const db = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    port: '3306',
+    password: 'Jung1234',
+    database: 'tutorials'
+});
+db.connect();
+
 
 // "requeset" client -> server
 // "response" server -> client
@@ -14,72 +25,60 @@ var app = http.createServer(function (req, res) {
     // https://nodejs.org/api/url.html#url_new_url_input_base
     // 첫번째 parameter가 relative 이면 base (두번째 parameter)가 필수
     const url = new URL(req.url, `http://${req.headers.host}`);
-
+    
     if (url.pathname === '/') {
-        // https://nodejs.org/api/url.html#url_class_urlsearchparams
         if (url.searchParams.get('id') === null) {
-            fs.readdir(dirPath, (err, files) => {
+            db.query(`SELECT * FROM topic`, (err, results) => {
                 if (err) {
-                    res.writeHead(404);
-                    res.end('Directory Not Found');
+                    throw error;
                 }
-                else {
-                    const title = "Welcome";
-                    const description = "Hello Node.js";
-                    const list = template.list(files);
-                    const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a>`);
 
-                    res.writeHead(200);
-                    res.end(html);
-                }
+                const title = "Welcome";
+                const description = "Hello Node.js";
+                const list = template.list(results);
+                const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a>`);
+
+                res.writeHead(200);
+                res.end(html);
             });
         }
         else {
-            fs.readdir(dirPath, (err, files) => {
+            db.query(`SELECT * FROM topic`, (err, results) => {
                 if (err) {
-                    res.writeHead(404);
-                    res.end('Directory Not Found');
+                    throw error;
                 }
-                else {
-                    const filteredID = path.parse(url.searchParams.get('id')).base;
-                    fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (err, data) => {
-                        if (err) {
-                            res.writeHead(404);
-                            res.end('File Not Found');
-                        }
-                        else {
-                            const title = filteredID;
-                            const list = template.list(files);
-                            const description = data;
-                            var sanitizedTitle = sanitizeHtml(title);
-                            var sanitizedDescription = sanitizeHtml(description, {
-                              allowedTags:['h1']
-                            });
-                            // Async 함수이기에 html을 함수 안에 넣어야함!
-                            const html = template.HTML(sanitizedTitle, list, `<h2>${sanitizedTitle}</h2><p>${sanitizedDescription}</p>`, `<a href="/create">create</a> <a href="/update?id=${sanitizedTitle}">update</a> 
-                            <form action="/delete_process" method="post">
-                                <input type="hidden" name="id" value="${sanitizedTitle}">
-                                <input type="submit" value="delete">
-                            </form>`);
 
-                            res.writeHead(200);
-                            res.end(html);
-                        }
-                    });
-                }
+                //`SELECT * FROM topic WHERE id=${filteredID}` 대신 밑에 있는 방식을 쓰는 이유
+                // [filteredID] 값이 세탁 되어서 ? 값에 들어감
+                db.query(`SELECT * FROM topic WHERE id=?`, [url.searchParams.get('id')], (err2, result) => {
+                    if (err2) {
+                        throw error;
+                    }
+
+                    const title = result[0].title;
+                    const list = template.list(results);
+                    const description = result[0].description;
+                    const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a> <a href="/update?id=${url.searchParams.get('id')}">update</a> 
+                    <form action="/delete_process" method="post">
+                        <input type="hidden" name="id" value="${url.searchParams.get('id')}">
+                        <input type="submit" value="delete">
+                    </form>`);
+
+                    res.writeHead(200);
+                    res.end(html);
+                });
             });
         }
     }
     else if (url.pathname === '/create') {
-        fs.readdir(dirPath, (err, files) => {
+        db.query(`SELECT * FROM topic`, (err, results) => {
             if (err) {
-                res.writeHead(404);
-                res.end('Directory Not Found');
+                throw error;
             }
-            else {
-                const title = "WEB - create";
-                const list = template.list(files);
-                const html = template.HTML(title, list, `
+
+            const title = "Web - create";
+            const list = template.list(results);
+            const html = template.HTML(title, list, `
                 <form action="/create_process" method="post">
                     <p><input type="text" name="title" placeholder="title"></p>
                     <p><textarea name="description" placeholder="description"></textarea></p>
@@ -87,36 +86,28 @@ var app = http.createServer(function (req, res) {
                 </form>
                 `, `<a href="/create">create</a>`);
 
-                res.writeHead(200);
-                res.end(html);
-            }
+            res.writeHead(200);
+            res.end(html);
         });
     }
     else if (url.pathname === '/create_process') {
-        // when you output 'req', you will see '_events'
-        // And under it you see 'on', 'end', 'pause', ...
-        // so here we are telling it to deal with the events 'data' and 'end'.
-
         // asynchronously concat a chunk of data from a client
         let body = '';
         req.on('data', chunk => {
             body += chunk;
         });
-        // after recieved the data from a client
+
+        // after done recieving the data from a client
         req.on('end', () => {
             const post = qs.parse(body);
-            const title = path.parse(post.title).base;
-            const description = post.description;
 
-            fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
+            db.query(`INSERT INTO topic (title, description, created, author_id) VALUES(?, ?, NOW(), ?)`, [post.title, post.description, 1], (err, result) => {
                 if (err) {
-                    res.writeHead(404);
-                    res.end("Failed to save the data");
+                    throw err;
                 }
-                else {
-                    res.writeHead(302, { Location: `/?id=${title}` });
-                    res.end();
-                }
+                // redirect using the id of the inserted row
+                res.writeHead(302, { Location: `/?id=${result.insertId}` });
+                res.end();
             });
         });
     }
