@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/JungWhoNam/study_nodejs_simple_crud#readme",
   "dependencies": {
+    "mysql": "^2.18.1",
     "sanitize-html": "^2.3.3"
   }
 }
