@@ -19,7 +19,7 @@ module.exports = {
     list: function templateList(files) {
         let list = "<ul>";
         for (var i = 0; i < files.length; i++) {
-            list += `<li><a href="/?id=${files[i]}">${files[i]}</a></li>`;
+            list += `<li><a href="/page/${files[i]}">${files[i]}</a></li>`;
         }
         list += "</ul>"
         return list;
