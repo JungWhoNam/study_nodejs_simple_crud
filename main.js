@@ -1,21 +1,7 @@
 const http = require('http');
-const fs = require('fs');
 const qs = require('querystring');
-const path = require('path'); // 사용자가 입력할 수 있는 path 세탁용
-const sanitizeHtml = require('sanitize-html');
-const mysql = require('mysql');
-const template = require('./libs/template.js');
-
-
-const dirPath = './data';
-const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    port: '3306',
-    password: 'Jung1234',
-    database: 'tutorials'
-});
-db.connect();
+const template = require('./lib/template.js');
+const db = require('./lib/db');
 
 
 // "requeset" client -> server
@@ -56,7 +42,6 @@ var app = http.createServer(function (req, res) {
                         throw errJoin;
                     }
 
-                    console.log(result[0]);
                     const title = result[0].title;
                     const list = template.list(topics);
                     const description = result[0].description;
