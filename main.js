@@ -25,12 +25,12 @@ var app = http.createServer(function (req, res) {
     // https://nodejs.org/api/url.html#url_new_url_input_base
     // 첫번째 parameter가 relative 이면 base (두번째 parameter)가 필수
     const url = new URL(req.url, `http://${req.headers.host}`);
-    
+
     if (url.pathname === '/') {
         if (url.searchParams.get('id') === null) {
             db.query(`SELECT * FROM topic`, (err, results) => {
                 if (err) {
-                    throw error;
+                    throw err;
                 }
 
                 const title = "Welcome";
@@ -45,14 +45,14 @@ var app = http.createServer(function (req, res) {
         else {
             db.query(`SELECT * FROM topic`, (err, results) => {
                 if (err) {
-                    throw error;
+                    throw err;
                 }
 
                 //`SELECT * FROM topic WHERE id=${filteredID}` 대신 밑에 있는 방식을 쓰는 이유
                 // [filteredID] 값이 세탁 되어서 ? 값에 들어감
                 db.query(`SELECT * FROM topic WHERE id=?`, [url.searchParams.get('id')], (err2, result) => {
                     if (err2) {
-                        throw error;
+                        throw err2;
                     }
 
                     const title = result[0].title;
@@ -73,7 +73,7 @@ var app = http.createServer(function (req, res) {
     else if (url.pathname === '/create') {
         db.query(`SELECT * FROM topic`, (err, results) => {
             if (err) {
-                throw error;
+                throw err;
             }
 
             const title = "Web - create";
@@ -112,36 +112,31 @@ var app = http.createServer(function (req, res) {
         });
     }
     else if (url.pathname === '/update') {
-        fs.readdir(dirPath, (err, files) => {
+        db.query(`SELECT * FROM topic`, (err, results) => {
             if (err) {
-                res.writeHead(404);
-                res.end('Directory Not Found');
+                throw err;
             }
-            else {
-                const filteredID = path.parse(url.searchParams.get('id')).base;
-                fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (err, data) => {
-                    if (err) {
-                        res.writeHead(404);
-                        res.end('File Not Found');
-                    }
-                    else {
-                        const title = filteredID;
-                        const list = template.list(files);
-                        const description = data;
-                        const html = template.HTML(title, list, `
-                        <form action="/update_process" method="post">
-                            <input type="hidden" name="id" value=${title}>
-                            <p><input type="text" name="title" placeholder="title" value=${title}></p>
-                            <p><textarea name="description" placeholder="description">${description}</textarea></p>
-                            <p><input type="submit"></p>
-                        </form>
-                        `, `<a href="/create">create</a> <a href="/update?=${title}"></a>`);
 
-                        res.writeHead(200);
-                        res.end(html);
-                    }
-                });
-            }
+            db.query(`SELECT * FROM topic WHERE id=?`, [url.searchParams.get('id')], (err2, result) => {
+                if (err2) {
+                    throw err2;
+                }
+
+                const title = result[0].title;
+                const list = template.list(results);
+                const description = result[0].description;
+                const html = template.HTML(title, list, `
+                <form action="/update_process" method="post">
+                    <input type="hidden" name="id" value=${result[0].id}>
+                    <p><input type="text" name="title" placeholder="title" value=${title}></p>
+                    <p><textarea name="description" placeholder="description">${description}</textarea></p>
+                    <p><input type="submit"></p>
+                </form>
+                `, `<a href="/create">create</a>`);
+
+                res.writeHead(200);
+                res.end(html);
+            });
         });
     }
     else if (url.pathname === '/update_process') {
@@ -153,15 +148,14 @@ var app = http.createServer(function (req, res) {
         // after recieved the data from a client
         req.on('end', () => {
             var post = qs.parse(body);
-            var id = path.parse(post.id).base;
-            var title = path.parse(post.title).base;
-            var description = post.description;
 
-            fs.rename(`${dirPath}/${id}`, `${dirPath}/${title}`, (err) => {
-                fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
-                    res.writeHead(302, { Location: `/?id=${title}` });
-                    res.end();
-                });
+            db.query(`UPDATE topic SET title=?, description=? WHERE id=?`, [post.title, post.description, post.id], (err, result) => {
+                if (err) {
+                    throw err;
+                }
+
+                res.writeHead(302, { Location: `/?id=${post.id}` });
+                res.end();
             });
         });
     }
