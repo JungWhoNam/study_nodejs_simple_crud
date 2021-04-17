@@ -1,5 +1,5 @@
 module.exports = {
-    HTML: function templateHTML(title, list, body, control) {
+    HTML: function (title, list, body, control) {
         return `
         <!doctype html>
         <html>
@@ -16,12 +16,23 @@ module.exports = {
         </html>
         `;
     },
-    list: function templateList(topics) {
+    list: function (topics) {
         let list = "<ul>";
         for (var i = 0; i < topics.length; i++) {
             list += `<li><a href="/?id=${topics[i].id}">${topics[i].title}</a></li>`;
         }
         list += "</ul>"
         return list;
+    },
+    authorSelect: function (authors, author_id) {
+        let tag = '';
+        for (var i = 0; i < authors.length; i++) {
+            tag += `<option value=${authors[i].id}${authors[i].id === author_id ? ' selected' : ''}>${authors[i].name}</option>`;
+        }
+        return `
+        <select name="author">
+            ${tag}
+        </select>
+        `;
     }
 };

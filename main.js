@@ -28,14 +28,14 @@ var app = http.createServer(function (req, res) {
 
     if (url.pathname === '/') {
         if (url.searchParams.get('id') === null) {
-            db.query(`SELECT * FROM topic`, (err, results) => {
-                if (err) {
-                    throw err;
+            db.query(`SELECT * FROM topic`, (errSelectTopic, topics) => {
+                if (errSelectTopic) {
+                    throw errSelectTopic;
                 }
 
                 const title = "Welcome";
                 const description = "Hello Node.js";
-                const list = template.list(results);
+                const list = template.list(topics);
                 const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a>`);
 
                 res.writeHead(200);
@@ -43,22 +43,27 @@ var app = http.createServer(function (req, res) {
             });
         }
         else {
-            db.query(`SELECT * FROM topic`, (err, results) => {
-                if (err) {
-                    throw err;
+            db.query(`SELECT * FROM topic`, (errSelectTopic, topics) => {
+                if (errSelectTopic) {
+                    throw errSelectTopic;
                 }
 
                 //`SELECT * FROM topic WHERE id=${filteredID}` 대신 밑에 있는 방식을 쓰는 이유
                 // [filteredID] 값이 세탁 되어서 ? 값에 들어감
-                db.query(`SELECT * FROM topic WHERE id=?`, [url.searchParams.get('id')], (err2, result) => {
-                    if (err2) {
-                        throw err2;
+                // topic.id AS id 를 사용하지 않으면 result[0].id의 값이 author.id로 나옴.
+                db.query(`SELECT *, topic.id AS id FROM topic LEFT JOIN author ON topic.author_id=author.id WHERE topic.id=?`, [url.searchParams.get('id')], (errJoin, result) => {
+                    if (errJoin) {
+                        throw errJoin;
                     }
 
+                    console.log(result[0]);
                     const title = result[0].title;
-                    const list = template.list(results);
+                    const list = template.list(topics);
                     const description = result[0].description;
-                    const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a> <a href="/update?id=${result[0].id}">update</a> 
+                    const html = template.HTML(title, list,
+                        `<h2>${title}</h2><p>${description}</p><p>by ${result[0].name}</p>`,
+                        `<a href="/create">create</a> 
+                    <a href="/update?id=${result[0].id}">update</a> 
                     <form action="/delete_process" method="post">
                         <input type="hidden" name="id" value="${result[0].id}">
                         <input type="submit" value="delete">
@@ -71,23 +76,32 @@ var app = http.createServer(function (req, res) {
         }
     }
     else if (url.pathname === '/create') {
-        db.query(`SELECT * FROM topic`, (err, results) => {
-            if (err) {
-                throw err;
+        db.query(`SELECT * FROM topic`, (errSelectTopic, topics) => {
+            if (errSelectTopic) {
+                throw errSelectTopic;
             }
 
-            const title = "Web - create";
-            const list = template.list(results);
-            const html = template.HTML(title, list, `
-                <form action="/create_process" method="post">
-                    <p><input type="text" name="title" placeholder="title"></p>
-                    <p><textarea name="description" placeholder="description"></textarea></p>
-                    <p><input type="submit"></p>
-                </form>
-                `, `<b>Create...</b>`);
+            db.query(`SELECT * FROM author`, (errSelectAuthor, authors) => {
+                if (errSelectAuthor) {
+                    throw errSelectAuthor;
+                }
 
-            res.writeHead(200);
-            res.end(html);
+                const title = "Web - create";
+                const list = template.list(topics);
+                const html = template.HTML(title, list, `
+                    <form action="/create_process" method="post">
+                        <p><input type="text" name="title" placeholder="title"></p>
+                        <p><textarea name="description" placeholder="description"></textarea></p>
+                        <p>
+                            ${template.authorSelect(authors)}
+                        </p>
+                        <p><input type="submit"></p>
+                    </form>
+                    `, `<b>Create...</b>`);
+
+                res.writeHead(200);
+                res.end(html);
+            });
         });
     }
     else if (url.pathname === '/create_process') {
@@ -101,7 +115,7 @@ var app = http.createServer(function (req, res) {
         req.on('end', () => {
             const post = qs.parse(body);
 
-            db.query(`INSERT INTO topic (title, description, created, author_id) VALUES(?, ?, NOW(), ?)`, [post.title, post.description, 1], (err, result) => {
+            db.query(`INSERT INTO topic (title, description, created, author_id) VALUES(?, ?, NOW(), ?)`, [post.title, post.description, post.author], (err, result) => {
                 if (err) {
                     throw err;
                 }
@@ -112,30 +126,37 @@ var app = http.createServer(function (req, res) {
         });
     }
     else if (url.pathname === '/update') {
-        db.query(`SELECT * FROM topic`, (err, results) => {
-            if (err) {
-                throw err;
+        db.query(`SELECT * FROM topic`, (errSelectTopic, topics) => {
+            if (errSelectTopic) {
+                throw errSelectTopic;
             }
 
-            db.query(`SELECT * FROM topic WHERE id=?`, [url.searchParams.get('id')], (err2, result) => {
-                if (err2) {
-                    throw err2;
+            db.query(`SELECT * FROM topic WHERE id=?`, [url.searchParams.get('id')], (errSelectTopicId, result) => {
+                if (errSelectTopicId) {
+                    throw errSelectTopicId;
                 }
 
-                const title = result[0].title;
-                const list = template.list(results);
-                const description = result[0].description;
-                const html = template.HTML(title, list, `
-                <form action="/update_process" method="post">
-                    <input type="hidden" name="id" value=${result[0].id}>
-                    <p><input type="text" name="title" placeholder="title" value=${title}></p>
-                    <p><textarea name="description" placeholder="description">${description}</textarea></p>
-                    <p><input type="submit"></p>
-                </form>
-                `, `<b>Update... ${title}</b>`);
+                db.query(`SELECT * FROM author`, (errSelectAuthor, authors) => {
+                    if (errSelectAuthor) {
+                        throw errSelectAuthor;
+                    }
 
-                res.writeHead(200);
-                res.end(html);
+                    const title = result[0].title;
+                    const list = template.list(topics);
+                    const description = result[0].description;
+                    const html = template.HTML(title, list, `
+                    <form action="/update_process" method="post">
+                        <input type="hidden" name="id" value=${result[0].id}>
+                        <p><input type="text" name="title" placeholder="title" value=${title}></p>
+                        <p><textarea name="description" placeholder="description">${description}</textarea></p>
+                        <p>${template.authorSelect(authors, result[0].author_id)}</p>
+                        <p><input type="submit"></p>
+                    </form>
+                    `, `<b>Update... ${title}</b>`);
+
+                    res.writeHead(200);
+                    res.end(html);
+                });
             });
         });
     }
@@ -149,7 +170,7 @@ var app = http.createServer(function (req, res) {
         req.on('end', () => {
             var post = qs.parse(body);
 
-            db.query(`UPDATE topic SET title=?, description=? WHERE id=?`, [post.title, post.description, post.id], (err, result) => {
+            db.query(`UPDATE topic SET title=?, description=? WHERE id=?`, [post.title, post.description, post.id], (err) => {
                 if (err) {
                     throw err;
                 }
@@ -168,7 +189,7 @@ var app = http.createServer(function (req, res) {
         // after recieved the data from a client
         req.on('end', () => {
             var post = qs.parse(body);
-            db.query(`DELETE FROM topic WHERE id=?`, [post.id], (err, result) => {
+            db.query(`DELETE FROM topic WHERE id=?`, [post.id], (err) => {
                 if (err) {
                     throw err;
                 }
