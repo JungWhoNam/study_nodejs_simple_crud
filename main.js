@@ -1,15 +1,16 @@
-const fs = require('fs');
-const qs = require('querystring');
-const path = require('path'); // 사용자가 입력할 수 있는 path 세탁용
-const sanitizeHtml = require('sanitize-html');
-const template = require('./libs/template.js');
-
 const express = require('express')
 const app = express()
+const fs = require('fs');
+const path = require('path'); // 사용자가 입력할 수 있는 path 세탁용
+const sanitizeHtml = require('sanitize-html');
+const compression = require('compression');
+const template = require('./libs/template.js');
+
 const port = 3000
 const dirPath = './data';
 
 app.use(express.urlencoded({ extended: false }));
+app.use(compression());
 
 app.get('/', (req, res) => {
     fs.readdir(dirPath, (err, files) => {
