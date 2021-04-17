@@ -58,9 +58,9 @@ var app = http.createServer(function (req, res) {
                     const title = result[0].title;
                     const list = template.list(results);
                     const description = result[0].description;
-                    const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a> <a href="/update?id=${url.searchParams.get('id')}">update</a> 
+                    const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a> <a href="/update?id=${result[0].id}">update</a> 
                     <form action="/delete_process" method="post">
-                        <input type="hidden" name="id" value="${url.searchParams.get('id')}">
+                        <input type="hidden" name="id" value="${result[0].id}">
                         <input type="submit" value="delete">
                     </form>`);
 
@@ -168,10 +168,12 @@ var app = http.createServer(function (req, res) {
         // after recieved the data from a client
         req.on('end', () => {
             var post = qs.parse(body);
-            var id = path.parse(post.id).base;
+            db.query(`DELETE FROM topic WHERE id=?`, [post.id], (err, result) => {
+                if (err) {
+                    throw err;
+                }
 
-            fs.unlink(`${dirPath}/${id}`, (err) => {
-                res.writeHead(302, { Location: "/" });
+                res.writeHead(302, { Location: `/` });
                 res.end();
             });
         });
