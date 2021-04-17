@@ -84,7 +84,7 @@ var app = http.createServer(function (req, res) {
                     <p><textarea name="description" placeholder="description"></textarea></p>
                     <p><input type="submit"></p>
                 </form>
-                `, `<a href="/create">create</a>`);
+                `, `<b>Create...</b>`);
 
             res.writeHead(200);
             res.end(html);
@@ -132,7 +132,7 @@ var app = http.createServer(function (req, res) {
                     <p><textarea name="description" placeholder="description">${description}</textarea></p>
                     <p><input type="submit"></p>
                 </form>
-                `, `<a href="/create">create</a>`);
+                `, `<b>Update... ${title}</b>`);
 
                 res.writeHead(200);
                 res.end(html);
