@@ -9,6 +9,8 @@ const app = express()
 const port = 3000
 const dirPath = './data';
 
+app.use(express.urlencoded({ extended: false }));
+
 app.get('/', (req, res) => {
     fs.readdir(dirPath, (err, files) => {
         if (err) {
@@ -81,30 +83,18 @@ app.get('/create', (req, res) => {
 });
 
 app.post('/create_process', (req, res) => {
-    // when you output 'req', you will see '_events'
-    // And under it you see 'on', 'end', 'pause', ...
-    // so here we are telling it to deal with the events 'data' and 'end'.
+    const post = req.body;
+    const title = path.parse(post.title).base;
+    const description = post.description;
 
-    // asynchronously concat a chunk of data from a client
-    let body = '';
-    req.on('data', chunk => {
-        body += chunk;
-    });
-    // after recieved the data from a client
-    req.on('end', () => {
-        const post = qs.parse(body);
-        const title = path.parse(post.title).base;
-        const description = post.description;
-
-        fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
-            if (err) {
-                res.status(404).send("Failed to save the data");
-            }
-            else {
-                // the default status for 'redirect(...)' is 302.
-                res.redirect(302, `/page/${title}`);
-            }
-        });
+    fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
+        if (err) {
+            res.status(404).send("Failed to save the data");
+        }
+        else {
+            // the default status for 'redirect(...)' is 302.
+            res.redirect(302, `/page/${title}`);
+        }
     });
 });
 
@@ -140,40 +130,24 @@ app.get('/update/:pageId', (req, res) => {
 });
 
 app.post('/update_process', (req, res) => {
-    // asynchronously concat a chunk of data from a client
-    let body = '';
-    req.on('data', chunk => {
-        body += chunk;
-    });
-    // after recieved the data from a client
-    req.on('end', () => {
-        var post = qs.parse(body);
-        var id = path.parse(post.id).base;
-        var title = path.parse(post.title).base;
-        var description = post.description;
+    var post = req.body;
+    var id = path.parse(post.id).base;
+    var title = path.parse(post.title).base;
+    var description = post.description;
 
-        fs.rename(`${dirPath}/${id}`, `${dirPath}/${title}`, (err) => {
-            fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
-                res.redirect(302, `/page/${title}`);
-            });
+    fs.rename(`${dirPath}/${id}`, `${dirPath}/${title}`, (err) => {
+        fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
+            res.redirect(302, `/page/${title}`);
         });
     });
 });
 
 app.post('/delete_process', (req, res) => {
-    // asynchronously concat a chunk of data from a client
-    let body = '';
-    req.on('data', chunk => {
-        body += chunk;
-    });
-    // after recieved the data from a client
-    req.on('end', () => {
-        var post = qs.parse(body);
-        var id = path.parse(post.id).base;
+    var post = req.body;
+    var id = path.parse(post.id).base;
 
-        fs.unlink(`${dirPath}/${id}`, (err) => {
-            res.redirect(302, '/');
-        });
+    fs.unlink(`${dirPath}/${id}`, (err) => {
+        res.redirect(302, '/');
     });
 });
 
