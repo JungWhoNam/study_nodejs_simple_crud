@@ -1,5 +1,6 @@
 const http = require('http');
 const topic = require('./lib/topic');
+const author = require('./lib/author');
 
 
 // "requeset" client -> server
@@ -32,6 +33,21 @@ var app = http.createServer(function (req, res) {
     }
     else if (url.pathname === '/delete_process') {
         topic.delete_process(req, res);
+    }
+    else if (url.pathname === '/author') {
+        author.home(req, res);
+    }
+    else if (url.pathname === '/author/create_process') {
+        author.create_process(req, res);
+    }
+    else if (url.pathname === '/author/update') {
+        author.update(req, res);
+    }
+    else if (url.pathname === '/author/update_process') {
+        author.update_process(req, res);
+    }
+    else if (url.pathname === '/author/delete_process') {
+        author.delete_process(req, res);
     }
     else {
         res.writeHead(404);
