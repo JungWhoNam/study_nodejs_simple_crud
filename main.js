@@ -7,90 +7,87 @@ const compression = require('compression');
 const template = require('./libs/template.js');
 
 const port = 3000
-const dirPath = './data';
 
 app.use(express.urlencoded({ extended: false }));
 app.use(compression());
 
-app.get('/', (req, res) => {
+// GET request에 데이터 폴더의 경로와 폴더 안의 파일들을 list로 담는 middleware
+app.get('*', (req, res, next) => {
+    const dirPath = './data';
+    req._dirPath = dirPath;
     fs.readdir(dirPath, (err, files) => {
-        if (err) {
-            res.status(404).send('Directory Not Found');
-        }
-        else {
-            const title = "Welcome";
-            const description = "Hello Node.js";
-            const list = template.list(files);
-            const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a>`);
-
-            res.send(html);
-        }
+        req._list = files;
+        next();
     });
-})
+});
 
-// ?id=10 이렇게 query parameter로 보내기 보다 아래 같이 보내는게 트랜드~
-app.get('/page/:pageId', (req, res) => {
-    fs.readdir(dirPath, (err, files) => {
+// POST request에 새로운 데이터 저장 폴더의 경로를 담는 middleware
+app.post('*', (req, res, next) => {
+    const dirPath = './data';
+    req._dirPath = dirPath;
+    next();
+});
+
+
+app.get('/', (req, res, next) => {
+    const title = "Welcome";
+    const description = "Hello Node.js";
+    const list = template.list(req._list);
+    const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a>`);
+
+    res.send(html);
+});
+
+// ?id=10 이렇게 query parameter로 보내기 보다 아래 같이 읽기 좋게 보내는게 트랜드~
+app.get('/page/:pageId', (req, res, next) => {
+    const filteredID = path.parse(req.params.pageId).base;
+    fs.readFile(`${req._dirPath}/${filteredID}`, 'utf8', (err, data) => {
         if (err) {
-            res.status(404).send('Directory Not Found');
+            // 밑에 있는 error-handler middlewware에 보냄
+            next(err);
         }
         else {
-            const filteredID = path.parse(req.params.pageId).base;
-            fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (errFile, data) => {
-                if (errFile) {
-                    res.status(404).send('File Not Found');
-                }
-                else {
-                    const title = filteredID;
-                    const list = template.list(files);
-                    const description = data;
-                    var sanitizedTitle = sanitizeHtml(title);
-                    var sanitizedDescription = sanitizeHtml(description, {
-                        allowedTags: ['h1']
-                    });
-                    // Async 함수이기에 html을 함수 안에 넣어야함!
-                    const html = template.HTML(sanitizedTitle, list, `<h2>${sanitizedTitle}</h2><p>${sanitizedDescription}</p>`, `<a href="/create">create</a> <a href="/update/${sanitizedTitle}">update</a> 
-                    <form action="/delete_process" method="post">
-                        <input type="hidden" name="id" value="${sanitizedTitle}">
-                        <input type="submit" value="delete">
-                    </form>`);
-
-                    res.send(html);
-                }
+            const title = filteredID;
+            const list = template.list(req._list);
+            const description = data;
+            var sanitizedTitle = sanitizeHtml(title);
+            var sanitizedDescription = sanitizeHtml(description, {
+                allowedTags: ['h1']
             });
-        }
-    });
-});
-
-app.get('/create', (req, res) => {
-    fs.readdir(dirPath, (err, files) => {
-        if (err) {
-            res.status(404).send('Directory Not Found');
-        }
-        else {
-            const title = "WEB - create";
-            const list = template.list(files);
-            const html = template.HTML(title, list, `
-            <form action="/create_process" method="post">
-                <p><input type="text" name="title" placeholder="title"></p>
-                <p><textarea name="description" placeholder="description"></textarea></p>
-                <p><input type="submit"></p>
-            </form>
-            `, `<a href="/create">create</a>`);
+            // Async 함수이기에 html을 함수 안에 넣어야함!
+            const html = template.HTML(sanitizedTitle, list, `<h2>${sanitizedTitle}</h2><p>${sanitizedDescription}</p>`, `<a href="/create">create</a> <a href="/update/${sanitizedTitle}">update</a> 
+            <form action="/delete_process" method="post">
+                <input type="hidden" name="id" value="${sanitizedTitle}">
+                <input type="submit" value="delete">
+            </form>`);
 
             res.send(html);
         }
     });
 });
 
-app.post('/create_process', (req, res) => {
+app.get('/create', (req, res, next) => {
+    const title = "WEB - create";
+    const list = template.list(req._list);
+    const html = template.HTML(title, list, `
+    <form action="/create_process" method="post">
+        <p><input type="text" name="title" placeholder="title"></p>
+        <p><textarea name="description" placeholder="description"></textarea></p>
+        <p><input type="submit"></p>
+    </form>
+    `, `<a href="/create">create</a>`);
+
+    res.send(html);
+});
+
+app.post('/create_process', (req, res, next) => {
     const post = req.body;
     const title = path.parse(post.title).base;
     const description = post.description;
 
-    fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
+    fs.writeFile(`${req._dirPath}/${title}`, description, 'utf8', (err) => {
         if (err) {
-            res.status(404).send("Failed to save the data");
+            next(err);
         }
         else {
             // the default status for 'redirect(...)' is 302.
@@ -99,254 +96,74 @@ app.post('/create_process', (req, res) => {
     });
 });
 
-app.get('/update/:pageId', (req, res) => {
-    fs.readdir(dirPath, (err, files) => {
+app.get('/update/:pageId', (req, res, next) => {
+    const filteredID = path.parse(req.params.pageId).base;
+    fs.readFile(`${req._dirPath}/${filteredID}`, 'utf8', (err, data) => {
         if (err) {
-            res.status(404).send('Directory Not Found');
+            next(err);
         }
         else {
-            const filteredID = path.parse(req.params.pageId).base;
-            fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (errFile, data) => {
-                if (errFile) {
-                    res.status(404).send('File Not Found');
-                }
-                else {
-                    const title = filteredID;
-                    const list = template.list(files);
-                    const description = data;
-                    const html = template.HTML(title, list, `
-                    <form action="/update_process" method="post">
-                        <input type="hidden" name="id" value=${title}>
-                        <p><input type="text" name="title" placeholder="title" value=${title}></p>
-                        <p><textarea name="description" placeholder="description">${description}</textarea></p>
-                        <p><input type="submit"></p>
-                    </form>
-                    `, `<a href="/create">create</a> <a href="/update?=${title}"></a>`);
+            const title = filteredID;
+            const list = template.list(req._list);
+            const description = data;
+            const html = template.HTML(title, list, `
+            <form action="/update_process" method="post">
+                <input type="hidden" name="id" value=${title}>
+                <p><input type="text" name="title" placeholder="title" value=${title}></p>
+                <p><textarea name="description" placeholder="description">${description}</textarea></p>
+                <p><input type="submit"></p>
+            </form>
+            `, `<a href="/create">create</a> <a href="/update?=${title}"></a>`);
 
-                    res.send(html);
-                }
-            });
+            res.send(html);
         }
     });
 });
 
-app.post('/update_process', (req, res) => {
+app.post('/update_process', (req, res, next) => {
     var post = req.body;
     var id = path.parse(post.id).base;
     var title = path.parse(post.title).base;
     var description = post.description;
 
-    fs.rename(`${dirPath}/${id}`, `${dirPath}/${title}`, (err) => {
-        fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
+    fs.rename(`${req._dirPath}/${id}`, `${req._dirPath}/${title}`, (err) => {
+        if (err) {
+            next(err);
+        }
+        fs.writeFile(`${req._dirPath}/${title}`, description, 'utf8', (err) => {
+            if (err) {
+                next(err);
+            }
             res.redirect(302, `/page/${title}`);
         });
     });
 });
 
-app.post('/delete_process', (req, res) => {
+app.post('/delete_process', (req, res, next) => {
     var post = req.body;
     var id = path.parse(post.id).base;
 
-    fs.unlink(`${dirPath}/${id}`, (err) => {
+    fs.unlink(`${req._dirPath}/${id}`, (err) => {
+        if (err) {
+            next(err);
+        }
         res.redirect(302, '/');
     });
 });
 
+// 위에 있는 middleware에서 req가 handling이 안됨...
+app.use((req, res, next) => {
+    // page, file, or server not found error
+    res.status(404).send('Sorry cannnot find that!');
+});
+
+// 인자가 4개면 error handling을 하는 middleware라고 express에서는 약속
+app.use((err, req, res, next) => {
+    console.error(err.stack);
+    // a server-side error code 500
+    res.status(500).send('Something broke');
+});
+
 app.listen(port, () => {
     console.log(`Example app listening at http://localhost:${port}`)
-})
-
-
-
-// const dirPath = './data';
-
-// // "requeset" client -> server
-// // "response" server -> client
-// var app = http.createServer(function (req, res) {
-//     // https://nodejs.org/api/http.html#http_message_url
-//     // https://nodejs.org/api/url.html#url_new_url_input_base
-//     // 첫번째 parameter가 relative 이면 base (두번째 parameter)가 필수
-//     const url = new URL(req.url, `http://${req.headers.host}`);
-
-//     if (url.pathname === '/') {
-//         // https://nodejs.org/api/url.html#url_class_urlsearchparams
-//         if (url.searchParams.get('id') === null) {
-//             fs.readdir(dirPath, (err, files) => {
-//                 if (err) {
-//                     res.writeHead(404);
-//                     res.end('Directory Not Found');
-//                 }
-//                 else {
-//                     const title = "Welcome";
-//                     const description = "Hello Node.js";
-//                     const list = template.list(files);
-//                     const html = template.HTML(title, list, `<h2>${title}</h2><p>${description}</p>`, `<a href="/create">create</a>`);
-
-//                     res.writeHead(200);
-//                     res.end(html);
-//                 }
-//             });
-//         }
-//         else {
-//             fs.readdir(dirPath, (err, files) => {
-//                 if (err) {
-//                     res.writeHead(404);
-//                     res.end('Directory Not Found');
-//                 }
-//                 else {
-//                     const filteredID = path.parse(url.searchParams.get('id')).base;
-//                     fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (err, data) => {
-//                         if (err) {
-//                             res.writeHead(404);
-//                             res.end('File Not Found');
-//                         }
-//                         else {
-//                             const title = filteredID;
-//                             const list = template.list(files);
-//                             const description = data;
-//                             var sanitizedTitle = sanitizeHtml(title);
-//                             var sanitizedDescription = sanitizeHtml(description, {
-//                               allowedTags:['h1']
-//                             });
-//                             // Async 함수이기에 html을 함수 안에 넣어야함!
-//                             const html = template.HTML(sanitizedTitle, list, `<h2>${sanitizedTitle}</h2><p>${sanitizedDescription}</p>`, `<a href="/create">create</a> <a href="/update?id=${sanitizedTitle}">update</a> 
-//                             <form action="/delete_process" method="post">
-//                                 <input type="hidden" name="id" value="${sanitizedTitle}">
-//                                 <input type="submit" value="delete">
-//                             </form>`);
-
-//                             res.writeHead(200);
-//                             res.end(html);
-//                         }
-//                     });
-//                 }
-//             });
-//         }
-//     }
-//     else if (url.pathname === '/create') {
-//         fs.readdir(dirPath, (err, files) => {
-//             if (err) {
-//                 res.writeHead(404);
-//                 res.end('Directory Not Found');
-//             }
-//             else {
-//                 const title = "WEB - create";
-//                 const list = template.list(files);
-//                 const html = template.HTML(title, list, `
-//                 <form action="/create_process" method="post">
-//                     <p><input type="text" name="title" placeholder="title"></p>
-//                     <p><textarea name="description" placeholder="description"></textarea></p>
-//                     <p><input type="submit"></p>
-//                 </form>
-//                 `, `<a href="/create">create</a>`);
-
-//                 res.writeHead(200);
-//                 res.end(html);
-//             }
-//         });
-//     }
-//     else if (url.pathname === '/create_process') {
-//         // when you output 'req', you will see '_events'
-//         // And under it you see 'on', 'end', 'pause', ...
-//         // so here we are telling it to deal with the events 'data' and 'end'.
-
-//         // asynchronously concat a chunk of data from a client
-//         let body = '';
-//         req.on('data', chunk => {
-//             body += chunk;
-//         });
-//         // after recieved the data from a client
-//         req.on('end', () => {
-//             const post = qs.parse(body);
-//             const title = path.parse(post.title).base;
-//             const description = post.description;
-
-//             fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
-//                 if (err) {
-//                     res.writeHead(404);
-//                     res.end("Failed to save the data");
-//                 }
-//                 else {
-//                     res.writeHead(302, { Location: `/?id=${title}` });
-//                     res.end();
-//                 }
-//             });
-//         });
-//     }
-//     else if (url.pathname === '/update') {
-//         fs.readdir(dirPath, (err, files) => {
-//             if (err) {
-//                 res.writeHead(404);
-//                 res.end('Directory Not Found');
-//             }
-//             else {
-//                 const filteredID = path.parse(url.searchParams.get('id')).base;
-//                 fs.readFile(`${dirPath}/${filteredID}`, 'utf8', (err, data) => {
-//                     if (err) {
-//                         res.writeHead(404);
-//                         res.end('File Not Found');
-//                     }
-//                     else {
-//                         const title = filteredID;
-//                         const list = template.list(files);
-//                         const description = data;
-//                         const html = template.HTML(title, list, `
-//                         <form action="/update_process" method="post">
-//                             <input type="hidden" name="id" value=${title}>
-//                             <p><input type="text" name="title" placeholder="title" value=${title}></p>
-//                             <p><textarea name="description" placeholder="description">${description}</textarea></p>
-//                             <p><input type="submit"></p>
-//                         </form>
-//                         `, `<a href="/create">create</a> <a href="/update?=${title}"></a>`);
-
-//                         res.writeHead(200);
-//                         res.end(html);
-//                     }
-//                 });
-//             }
-//         });
-//     }
-//     else if (url.pathname === '/update_process') {
-//         // asynchronously concat a chunk of data from a client
-//         let body = '';
-//         req.on('data', chunk => {
-//             body += chunk;
-//         });
-//         // after recieved the data from a client
-//         req.on('end', () => {
-//             var post = qs.parse(body);
-//             var id = path.parse(post.id).base;
-//             var title = path.parse(post.title).base;
-//             var description = post.description;
-
-//             fs.rename(`${dirPath}/${id}`, `${dirPath}/${title}`, (err) => {
-//                 fs.writeFile(`${dirPath}/${title}`, description, 'utf8', (err) => {
-//                     res.writeHead(302, { Location: `/?id=${title}` });
-//                     res.end();
-//                 });
-//             });
-//         });
-//     }
-//     else if (url.pathname === '/delete_process') {
-//         // asynchronously concat a chunk of data from a client
-//         let body = '';
-//         req.on('data', chunk => {
-//             body += chunk;
-//         });
-//         // after recieved the data from a client
-//         req.on('end', () => {
-//             var post = qs.parse(body);
-//             var id = path.parse(post.id).base;
-
-//             fs.unlink(`${dirPath}/${id}`, (err) => {
-//                 res.writeHead(302, { Location: "/" });
-//                 res.end();
-//             });
-//         });
-//     }
-//     else {
-//         res.writeHead(404);
-//         res.end('Not Found');
-//     }
-// });
-// app.listen(3000);
+});
