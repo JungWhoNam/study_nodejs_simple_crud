@@ -2,11 +2,14 @@ const express = require('express');
 const app = express();
 const fs = require('fs');
 const compression = require('compression');
+const helmet = require('helmet');
 const indexRouter = require('./routes/index');
 const topicRouter = require('./routes/topic');
 
 const port = 3000
 
+// also check if dependencies are secure by type npm audit
+app.use(helmet());
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: false }));
 app.use(compression());
