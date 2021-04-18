@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const template = require('../libs/template');
+const auth = require('../libs/auth');
 
 router.get('/', (req, res, next) => {
     const title = "Welcome";
@@ -11,7 +12,7 @@ router.get('/', (req, res, next) => {
         <h2>${title}</h2>
         <p>${description}</p>
         <img src="/images/lina-verovaya-EN43Neaqpz4-unsplash.jpg" style="width:300px; margin-top:10px">
-        `, `<a href="/create">create</a>`);
+        `, `<a href="/topic/create">create</a>`, auth.authStatusUI(req, res));
 
     res.send(html);
 });

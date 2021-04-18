@@ -4,9 +4,15 @@ const fs = require('fs');
 const path = require('path'); // 사용자가 입력할 수 있는 path 세탁용
 const sanitizeHtml = require('sanitize-html');
 const template = require('../libs/template');
-
+const auth = require('../libs/auth');
 
 router.get('/create', (req, res, next) => {
+    if (!auth.authIsOwner(req, res)) {
+        res.redirect('/');
+        // 함수 redirect가 콜이 된다고 해도 return 되는게 아니라 함수 안에 있는 코드들도 실행이 된다... 따라서 return false를 써줘야한다.
+        return false;
+    }
+
     const title = "WEB - create";
     const list = template.list(req._list, req.baseUrl);
     const html = template.HTML(title, list, `
@@ -15,12 +21,18 @@ router.get('/create', (req, res, next) => {
         <p><textarea name="description" placeholder="description"></textarea></p>
         <p><input type="submit"></p>
     </form>
-    `, `<a href="${req.baseUrl}/create">create</a>`);
+    `, `<a href="${req.baseUrl}/create">create</a>`,
+        auth.authStatusUI(req, res));
 
     res.send(html);
 });
 
 router.post('/create_process', (req, res, next) => {
+    if (!auth.authIsOwner(req, res)) {
+        res.redirect('/');
+        return false;
+    }
+
     const post = req.body;
     const title = path.parse(post.title).base;
     const description = post.description;
@@ -37,6 +49,11 @@ router.post('/create_process', (req, res, next) => {
 });
 
 router.get('/update/:topicId', (req, res, next) => {
+    if (!auth.authIsOwner(req, res)) {
+        res.redirect('/');
+        return false;
+    }
+
     const filteredID = path.parse(req.params.topicId).base;
     fs.readFile(`${req._dirPath}/${filteredID}`, 'utf8', (err, data) => {
         if (err) {
@@ -53,7 +70,8 @@ router.get('/update/:topicId', (req, res, next) => {
                 <p><textarea name="description" placeholder="description">${description}</textarea></p>
                 <p><input type="submit"></p>
             </form>
-            `, `<a href="${req.baseUrl}/create">create</a>`);
+            `, `<a href="${req.baseUrl}/create">create</a>`,
+                auth.authStatusUI(req, res));
 
             res.send(html);
         }
@@ -61,6 +79,11 @@ router.get('/update/:topicId', (req, res, next) => {
 });
 
 router.post('/update_process', (req, res, next) => {
+    if (!auth.authIsOwner(req, res)) {
+        res.redirect('/');
+        return false;
+    }
+
     var post = req.body;
     var id = path.parse(post.id).base;
     var title = path.parse(post.title).base;
@@ -80,6 +103,11 @@ router.post('/update_process', (req, res, next) => {
 });
 
 router.post('/delete_process', (req, res, next) => {
+    if (!auth.authIsOwner(req, res)) {
+        res.redirect('/');
+        return false;
+    }
+
     var post = req.body;
     var id = path.parse(post.id).base;
 
@@ -112,7 +140,8 @@ router.get('/:topicId', (req, res, next) => {
             <form action="${req.baseUrl}/delete_process" method="post">
                 <input type="hidden" name="id" value="${sanitizedTitle}">
                 <input type="submit" value="delete">
-            </form>`);
+            </form>`,
+                auth.authStatusUI(req, res));
 
             res.send(html);
         }
