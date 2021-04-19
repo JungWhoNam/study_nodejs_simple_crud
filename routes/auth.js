@@ -27,12 +27,12 @@ router.get('/logout', (req, res, next) => {
 
     // redirect하기 전에 session 파일에 업데이트 
     // 안그러면 redirect가 먼저 발생하여 logout 상태가 유지되지 않음
-    req.session.destroy((err) => {
-        res.redirect('/');
+    //req.session.destroy((err) => {
+    //    res.redirect('/');
+    //});
+     req.session.save((err) => {
+         res.redirect('/');
     });
-    // req.session.save((err) => {
-    //     res.redirect('/');
-    // });
 });
 
 module.exports = router;
