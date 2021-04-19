@@ -3,9 +3,15 @@ const router = express.Router();
 const template = require('../libs/template');
 
 router.get('/login', (req, res, next) => {
+    const fmsg = req.flash();
+    let feedback = '';
+    if (fmsg.message) {
+        feedback = fmsg.message[0];
+    }
     const title = "WEB - login";
     const list = template.list(req._list, '/topic');
     const html = template.HTML(title, list, `
+    <div style="color:red;">${feedback}</div>
     <form action="${req.baseUrl}/login_process" method="post">
         <p><input type="text" name="email" placeholder="email"></p>
         <p><input type="password" name="pwd" placeholder="password"></p>

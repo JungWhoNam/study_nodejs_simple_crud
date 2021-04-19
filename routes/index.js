@@ -4,11 +4,17 @@ const template = require('../libs/template');
 const auth = require('../libs/auth');
 
 router.get('/', (req, res, next) => {
+    const fmsg = req.flash();
+    let feedback = '';
+    if (fmsg.message) {
+        feedback = fmsg.message[0];
+    }
     const title = "Welcome";
     const description = "Hello Node.js and Express";
     const list = template.list(req._list, '/topic');
     const html = template.HTML(title, list,
         `
+        <div style="color:blue;">${feedback}</div>
         <h2>${title}</h2>
         <p>${description}</p>
         <img src="/images/lina-verovaya-EN43Neaqpz4-unsplash.jpg" style="width:300px; margin-top:10px">

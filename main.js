@@ -7,6 +7,7 @@ const session = require('express-session')
 const FileStore = require('session-file-store')(session);
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const flash = require('connect-flash');
 
 const indexRouter = require('./routes/index');
 const topicRouter = require('./routes/topic');
@@ -34,6 +35,7 @@ app.use(session({
     saveUninitialized: true,
     store: new FileStore()
 }));
+app.use(flash()); // 일회용 메세지 스택 (내부적으로 저장하다가 사용하면 지움)
 app.use(passport.initialize());
 app.use(passport.session());
 
@@ -64,7 +66,9 @@ passport.use(new LocalStrategy(
     function (username, password, done) {
         if (username === authData.email) {
             if (password === authData.password) {
-                return done(null, authData);
+                return done(null, authData, {
+                    message: 'Welcome.'
+                });
             }
             else {
                 return done(null, false, {
@@ -82,22 +86,57 @@ passport.use(new LocalStrategy(
 
 // passport는 내부적으로 express-session을 사용하기에 session을 활성화 시킨 다음에 passport가 등장해야 한다...
 // 사용자가 로그인 했을때 passport가 정보를 처리하게 하는 코드
-app.post('/auth/login_process',
-    // login 페이지에서 작성한 form을 passport가 받게함
-    passport.authenticate('local', {
-        //successRedirect: '/',
-        failureRedirect: '/auth/login'
-    }),
-    // express session으로 session-file-store을 사용중
-    // session 정보가 파일에 저장 후 redirection을 하기 위해서...
-    // 위에 successRedirect: '/', 주석 처리 및...
-    // 밑에 함수를 정의함
-    (req, res) => {
-        req.session.save((err) => {
-            res.redirect('/');
-        });
-    }
-);
+// app.post('/auth/login_process',
+//     // login 페이지에서 작성한 form을 passport가 받게함
+//     passport.authenticate('local', {
+//         //successRedirect: '/',
+//         failureRedirect: '/auth/login',
+//         failureFlash: true,
+//         successFlash: true
+//     }),
+//     // express session으로 session-file-store을 사용중
+//     // session 정보가 파일에 저장 후 redirection을 하기 위해서...
+//     // 위에 successRedirect: '/', 주석 처리 및...
+//     // 밑에 함수를 정의함
+//     (req, res) => {
+//         req.session.save((err) => {
+//             res.redirect('/');
+//         });
+//     }
+// );
+
+
+// 사용자가 로그인 했을때 passport가 정보를 처리하게 하는 코드
+// 위와 같은 일을 하지만... 지금 코드는 session을 파일로 관리하기에...
+// 위의 방식 말고 custom callback을 만들어 session 정보를 저장 후 redirect하는 방식을 사용
+app.post('/auth/login_process', (req, res, next) => {
+    passport.authenticate('local', (err, user, info) => {
+        if (req.session.flash) {
+            req.session.flash = {}
+        }
+        req.flash('message', info.message)
+
+        req.session.save(() => {
+            if (err) {
+                return next(err)
+            }
+            if (!user) {
+                return res.redirect('/auth/login')
+            }
+            req.logIn(user, (err) => {
+                if (err) {
+                    return next(err)
+                }
+                // redirect after saving the flash data into the session file
+                return req.session.save(() => {
+                    res.redirect('/')
+                })
+            })
+        })
+
+    })(req, res, next);
+})
+
 
 // GET request에 데이터 폴더의 경로와 폴더 안의 파일들을 list로 담는 middleware
 app.get('*', (req, res, next) => {
