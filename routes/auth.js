@@ -24,24 +24,24 @@ router.get('/login', (req, res, next) => {
     res.send(html);
 });
 
-router.post('/login_process', (req, res, next) => {
-    const post = req.body;
-    const email = post.email;
-    const pwd = post.pwd;
+// router.post('/login_process', (req, res, next) => {
+//     const post = req.body;
+//     const email = post.email;
+//     const pwd = post.pwd;
 
-    if (email === authData.email && pwd === authData.password) {
-        req.session.is_logined = true;
-        req.session.nickname = authData.nickname;
-        // 추가된 정보가 있는 session을 저장 (redirect하기 전에)
-        // 안그러면 session이 파일에 저장되기 전에 redirect가 발생하여 login 상태가 유지되지 않음
-        req.session.save((err) => {
-            res.redirect(`/`);
-        });
-    }
-    else {
-        next('who???');
-    }
-});
+//     if (email === authData.email && pwd === authData.password) {
+//         req.session.is_logined = true;
+//         req.session.nickname = authData.nickname;
+//         // 추가된 정보가 있는 session을 저장 (redirect하기 전에)
+//         // 안그러면 session이 파일에 저장되기 전에 redirect가 발생하여 login 상태가 유지되지 않음
+//         req.session.save((err) => {
+//             res.redirect(`/`);
+//         });
+//     }
+//     else {
+//         next('who???');
+//     }
+// });
 
 router.get('/logout', (req, res, next) => {
     req.session.destroy((err) => {

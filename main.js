@@ -28,8 +28,38 @@ app.use(session({
     store: new FileStore()
 }));
 
-// passport는 내부적으로 express-session을 사용하기에 session을 활성화 시킨 다음에 passport가 등장해야 한다...
 
+passport.use(new LocalStrategy(
+    // by default, LocalStrategy expects parameters named username and password. In our case, we have named these fields differently.
+    { // by default
+        usernameField: 'email',
+        passwordField: 'pwd'
+    },
+    function(username, password, done) {
+        console.log('LocalStrategy', username, password);
+        // User.findOne({ username: username }, function(err, user) {
+        //     if (err) { return done(err); }
+        //     if (!user) {
+        //       return done(null, false, { message: 'Incorrect username.' });
+        //     }
+        //     if (!user.validPassword(password)) {
+        //       return done(null, false, { message: 'Incorrect password.' });
+        //     }
+        //     return done(null, user);
+        // });
+    }
+));
+
+// passport는 내부적으로 express-session을 사용하기에 session을 활성화 시킨 다음에 passport가 등장해야 한다...
+// http://www.passportjs.org/docs/username-password/
+app.post('/auth/login_process', 
+    // login 페이지에서 작성한 form을 passport가 받게함
+    passport.authenticate('local', {
+        successRedirect: '/',
+        failureRedirect: '/auth/login'
+        //failureFlash: true 
+    })
+);
 
 // GET request에 데이터 폴더의 경로와 폴더 안의 파일들을 list로 담는 middleware
 app.get('*', (req, res, next) => {
