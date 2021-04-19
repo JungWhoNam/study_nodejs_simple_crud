@@ -5,13 +5,17 @@ const compression = require('compression');
 const helmet = require('helmet');
 const session = require('express-session')
 const FileStore = require('session-file-store')(session);
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+
 const indexRouter = require('./routes/index');
 const topicRouter = require('./routes/topic');
 const authRouter = require('./routes/auth');
 
+
 const port = 3000
 
-// also check if dependencies are secure by type npm audit
+// Check if dependencies are secure by type npm audit
 app.use(helmet());
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: false }));
@@ -23,6 +27,9 @@ app.use(session({
     saveUninitialized: true,
     store: new FileStore()
 }));
+
+// passport는 내부적으로 express-session을 사용하기에 session을 활성화 시킨 다음에 passport가 등장해야 한다...
+
 
 // GET request에 데이터 폴더의 경로와 폴더 안의 파일들을 list로 담는 middleware
 app.get('*', (req, res, next) => {
