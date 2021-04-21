@@ -4,11 +4,10 @@ const template = require('../libs/template');
 const auth = require('../libs/auth');
 
 router.get('/', (req, res, next) => {
-    const fmsg = req.flash();
-    let feedback = '';
-    if (fmsg.message) {
-        feedback = fmsg.message[0];
-    }
+    // console.log(req.user); // deserializeUser의 done의 두번째 인자 값
+    // console.log(req.session); // 로그인 성공시 serializeUser의 done의 두번째 인자 값이 passport: {...}에 추가됨
+    let feedback = req.flash('success');
+
     const title = "Welcome";
     const description = "Hello Node.js and Express";
     const list = template.list(req._list, '/topic');

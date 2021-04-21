@@ -1,21 +1,21 @@
 var express = require('express')
 var session = require('express-session')
 
-// compatible session store의 한 예
-// default는 서버 컴터 메모리에 저장 (문제점: 서버 restart 되면 session에 대한 정보는 사라짐)
+// compatible session store의 한 예로 session-file-store 사용
+// 이거 없이 그냥 사용하게 되면 서버 컴터 메모리에 저장 (문제점: 서버 restart 되면 session에 대한 정보는 사라짐)
 // 따라서 'session-file-store'는 쿠키를 파일에 저장
 // 작동 방법??? a client의 reqest header 중 Cookie에 파일명을 보냄
 // session-file-store는 그거를 보고 sessions 폴더에 파일이 찾아서 req.session에 정보를 넣어줌
-var FileStore = require('session-file-store')(session);
+//var FileStore = require('session-file-store')(session);
 
 var app = express()
 
 app.use(session({
     // screat 정보는 version system에 올리지 말것!!!
-    secret: '',
+    secret: 'asdfal;sjdfljksd',
     resave: false,
     saveUninitialized: true,
-    store: new FileStore()
+//    store: new FileStore() // comment this line if wants to use the default session store... 
 }))
 
 app.get('/', function (req, res, next) {
@@ -27,11 +27,14 @@ app.get('/', function (req, res, next) {
     if (req.session.num === undefined) {
         req.session.num = 1;
     }
-    else {
+    else if (req.session.num > 5) {
+        req.session.num = undefined;
+        return res.redirect('/');
+    } else {
         req.session.num += 1;
     }
 
-    res.send(`Views : ${req.session.num}`);
+    return res.send(`Views : ${req.session.num}`);
 })
 
 app.listen(3000, () => {

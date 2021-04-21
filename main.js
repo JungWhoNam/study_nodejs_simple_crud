@@ -1,28 +1,31 @@
 const express = require('express');
-const app = express();
 const fs = require('fs');
-const compression = require('compression');
+const compression = require('compression'); 
 const helmet = require('helmet');
-const session = require('express-session')
-const FileStore = require('session-file-store')(session);
+const session = require('express-session');
 const flash = require('connect-flash');
+const passport = require('passport');
+const passportConfig  = require('./libs/passport'); 
 
-
-// Check if dependencies are secure by type npm audit
-app.use(helmet());
+const app = express();
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: false }));
+app.use(helmet());
 app.use(compression());
+
+// 세션 활성화 및 passport 연동
 app.use(session({
     // screat 정보는 version system에 올리지 말것!!!
     secret: 'asdf;aasadfasdksjdfkl',
     resave: false,
-    saveUninitialized: true,
-    store: new FileStore()
-}));
+    saveUninitialized: true
+})); // 세션 활성화
 app.use(flash()); // 일회용 메세지 스택 (내부적으로 저장하다가 사용하면 지움)
-const passport = require('./libs/passport')(app);
+app.use(passport.initialize()); // passport 구동
+app.use(passport.session()); // 세션 연결
+passportConfig(passport); // passport 설정
 
+// routes
 const indexRouter = require('./routes/index');
 const topicRouter = require('./routes/topic');
 const authRouter = require('./routes/auth')(passport);
