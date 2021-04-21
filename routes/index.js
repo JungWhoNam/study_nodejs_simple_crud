@@ -6,14 +6,16 @@ const auth = require('../libs/auth');
 router.get('/', (req, res, next) => {
     // console.log(req.user); // deserializeUser의 done의 두번째 인자 값
     // console.log(req.session); // 로그인 성공시 serializeUser의 done의 두번째 인자 값이 passport: {...}에 추가됨
-    let feedback = req.flash('success');
+    let feedbackSuccess = req.flash('success');
+    let feedbackError = req.flash('error');
 
     const title = "Welcome";
     const description = "Hello Node.js and Express";
     const list = template.list(req._list, '/topic');
     const html = template.HTML(title, list,
         `
-        <div style="color:blue;">${feedback}</div>
+        <div style="color:blue;">${feedbackSuccess}</div>
+        <div style="color:blue;">${feedbackError}</div>
         <h2>${title}</h2>
         <p>${description}</p>
         <img src="/images/lina-verovaya-EN43Neaqpz4-unsplash.jpg" style="width:300px; margin-top:10px">

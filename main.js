@@ -1,5 +1,4 @@
 const express = require('express');
-const fs = require('fs');
 const compression = require('compression'); 
 const helmet = require('helmet');
 const session = require('express-session');
@@ -29,21 +28,11 @@ passportConfig(passport); // passport 설정
 const indexRouter = require('./routes/index');
 const topicRouter = require('./routes/topic');
 const authRouter = require('./routes/auth');
+const db = require('./libs/db');
 
-// GET request에 데이터 폴더의 경로와 폴더 안의 파일들을 list로 담는 middleware
+// GET request에 토픽들을 _list에 담는 middleware
 app.get('*', (req, res, next) => {
-    const dirPath = './data';
-    req._dirPath = dirPath;
-    fs.readdir(dirPath, (err, files) => {
-        req._list = files;
-        next();
-    });
-});
-
-// POST request에 새로운 데이터 저장 폴더의 경로를 담는 middleware
-app.post('*', (req, res, next) => {
-    const dirPath = './data';
-    req._dirPath = dirPath;
+    req._list = db.get('topics').value();
     next();
 });
 

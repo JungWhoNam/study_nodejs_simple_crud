@@ -17,10 +17,10 @@ module.exports = {
         </html>
         `;
     },
-    list: function (files, baseUrl) {
+    list: function (topic, baseUrl) {
         let list = "<ul>";
-        for (var i = 0; i < files.length; i++) {
-            list += `<li><a href="${baseUrl}/${files[i]}">${files[i]}</a></li>`;
+        for (var i = 0; i < topic.length; i++) {
+            list += `<li><a href="${baseUrl}/${topic[i].id}">${topic[i].title}</a></li>`;
         }
         list += "</ul>"
         return list;
