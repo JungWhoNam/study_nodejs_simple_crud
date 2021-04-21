@@ -1,5 +1,6 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
+const bcrypt = require('bcrypt');
 const db = require('../libs/db');
 
 module.exports = function () {
@@ -28,19 +29,27 @@ module.exports = function () {
         // log-in 할때 콜 되는 함수
         function (email, password, done) {
             const user = db.get('users').find({
-                email: email,
-                password: password
+                email: email
             }).value();
 
             if (user) {
-                // serializeUser 콜
-                return done(null, user, {
-                    message: 'Welcome.'
+                bcrypt.compare(password, user.password, function (err, result) {
+                    if (result) {
+                        // serializeUser 콜
+                        return done(null, user, {
+                            message: 'Welcome.'
+                        });
+                    }
+                    else {
+                        return done(null, false, {
+                            message: 'Wrong password.'
+                        });
+                    }
                 });
             }
             else {
                 return done(null, false, {
-                    message: 'Incorrect information.'
+                    message: 'Email does not exist.'
                 });
             }
         }

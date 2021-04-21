@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const shortid = require('shortid');
+const bcrypt = require('bcrypt');
 const template = require('../libs/template');
 const db = require('../libs/db');
 
@@ -79,20 +80,22 @@ router.post('/register_process', (req, res, next) => {
         return res.redirect(`${req.baseUrl}/register`);
     }
 
-    const user = {
-        id: shortid.generate(),
-        email: email,
-        password: pwd,
-        displayName: displayName
-    };
-
-    db.get('users').push(user).write();
-    req.login(user, (err) => {
-        if (err) {
-            throw err;
-        }
-        req.flash('success', 'Email is registered.');
-        return res.redirect('/');
+    bcrypt.hash(pwd, 10, function (err, hash) {
+        const user = {
+            id: shortid.generate(),
+            email: email,
+            password: hash,
+            displayName: displayName
+        };
+    
+        db.get('users').push(user).write();
+        req.login(user, (err) => {
+            if (err) {
+                throw err;
+            }
+            req.flash('success', 'Email is registered.');
+            return res.redirect('/');
+        });
     });
 });
 
