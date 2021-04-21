@@ -28,7 +28,7 @@ passportConfig(passport); // passport 설정
 // routes
 const indexRouter = require('./routes/index');
 const topicRouter = require('./routes/topic');
-const authRouter = require('./routes/auth')(passport);
+const authRouter = require('./routes/auth');
 
 // GET request에 데이터 폴더의 경로와 폴더 안의 파일들을 list로 담는 middleware
 app.get('*', (req, res, next) => {

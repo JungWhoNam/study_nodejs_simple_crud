@@ -117,3 +117,6 @@ dist
 
 # session store
 sessions
+
+# lowdb store
+db.json
