@@ -74,21 +74,29 @@ router.post('/register_process', (req, res, next) => {
         return res.redirect(`${req.baseUrl}/register`);
     }
 
-    // if the email already exists...
-    if (db.get('users').find({ email: email }).value()) {
-        req.flash('error', 'Email is already registered.');
-        return res.redirect(`${req.baseUrl}/register`);
-    }
-
     bcrypt.hash(pwd, 10, function (err, hash) {
-        const user = {
-            id: shortid.generate(),
-            email: email,
-            password: hash,
-            displayName: displayName
-        };
+        let user = db.get('users').find({ email: email }).value();
 
-        db.get('users').push(user).write();
+        // if there is an user with the email but the password is not added, assume he is registered using ferderated identities
+        if (user && !user.password) {
+            user.password = hash;
+            user.displayName = displayName;
+            db.get('users').find({ id: user.id }).assign(user).write();
+        }
+        else if (user && user.password) {
+            req.flash('error', 'Email is already registered.');
+            return res.redirect(`${req.baseUrl}/register`);
+        }
+        else {
+            user = {
+                id: shortid.generate(),
+                email: email,
+                password: hash,
+                displayName: displayName
+            };
+            db.get('users').push(user).write();
+        }
+
         req.login(user, (err) => {
             if (err) {
                 throw err;
@@ -110,8 +118,8 @@ router.get('/logout', (req, res, next) => {
 // client가 content server에게 서비스 기능 사용하게 해달라고 요청
 // login google 버튼 클릭시 실행
 router.get('/google',
-    passport.authenticate('google', { 
-        scope: ['profile', 'email'] 
+    passport.authenticate('google', {
+        scope: ['profile', 'email']
     }));
 
 // 사용자 로그인 후 content server가 authentication code 생성 후
