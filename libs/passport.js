@@ -61,6 +61,8 @@ module.exports = function () {
 
     // Use the GoogleStrategy within Passport.
     // Strategies in Passport require a `verify` function, which accept credentials (in this case, an accessToken, refreshToken, and Google profile), and invoke a callback with a user object.
+    // unlike Facebook strategy, I didnt' create the json as an object I could directly use an input becasue...
+    // the json is copied from the downloaded json from Google (Facebook doesn't have downloaded option).
     passport.use(new GoogleStrategy(
         {
             clientID: credentials.google.client_id,
