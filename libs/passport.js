@@ -4,7 +4,7 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const shortid = require('shortid');
 const bcrypt = require('bcrypt');
 const db = require('../libs/db');
-const googleCredentials = require('../config/google.json');
+const credentials = require('../config/keys.json');
 
 module.exports = function () {
 
@@ -62,9 +62,9 @@ module.exports = function () {
     // Strategies in Passport require a `verify` function, which accept credentials (in this case, an accessToken, refreshToken, and Google profile), and invoke a callback with a user object.
     passport.use(new GoogleStrategy(
         {
-            clientID: googleCredentials.web.client_id,
-            clientSecret: googleCredentials.web.client_secret,
-            callbackURL: googleCredentials.web.redirect_uris[0]
+            clientID: credentials.google.client_id,
+            clientSecret: credentials.google.client_secret,
+            callbackURL: credentials.google.redirect_uris[0]
         },
         function (accessToken, refreshToken, profile, done) {
             const email = profile.emails[0].value;
