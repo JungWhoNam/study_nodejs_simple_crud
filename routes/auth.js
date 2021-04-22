@@ -130,4 +130,14 @@ router.get('/google/callback',
         res.redirect('/');
     });
 
+
+// facebook은 scope를 여기서 설정하지 않고 FacebookStrategy에 profileFields에서 설정
+router.get('/facebook', passport.authenticate('facebook'));
+
+router.get('/facebook/callback',
+    passport.authenticate('facebook', {
+        successRedirect: '/',
+        failureRedirect: '/auth/login'
+    }));
+
 module.exports = router;

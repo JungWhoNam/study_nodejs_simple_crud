@@ -1,6 +1,7 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const FacebookStrategy = require('passport-facebook').Strategy;
 const shortid = require('shortid');
 const bcrypt = require('bcrypt');
 const db = require('../libs/db');
@@ -90,6 +91,15 @@ module.exports = function () {
             }
 
             done(null, user);
+        }
+    ));
+
+    // https://stackoverflow.com/questions/22880876/passport-facebook-authentication-is-not-providing-email-for-all-facebook-account
+    // need to pass profileFields to get 'email' scope value
+    passport.use(new FacebookStrategy(
+        credentials.facebook,
+        function (accessToken, refreshToken, profile, done) {
+            console.log('facebook', accessToken, refreshToken, profile);
         }
     ));
 }
