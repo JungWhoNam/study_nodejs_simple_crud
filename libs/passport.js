@@ -1,6 +1,7 @@
 const passport = require('passport');
 const LocalStrategy = require('passport-local').Strategy;
-const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const shortid = require('shortid');
 const bcrypt = require('bcrypt');
 const db = require('../libs/db');
 const googleCredentials = require('../config/google.json');
@@ -59,16 +60,36 @@ module.exports = function () {
 
     // Use the GoogleStrategy within Passport.
     // Strategies in Passport require a `verify` function, which accept credentials (in this case, an accessToken, refreshToken, and Google profile), and invoke a callback with a user object.
-    passport.use(new GoogleStrategy({
-        clientID: googleCredentials.web.client_id,
-        clientSecret: googleCredentials.web.client_secret,
-        callbackURL: googleCredentials.web.redirect_uris[0]
-    },
+    passport.use(new GoogleStrategy(
+        {
+            clientID: googleCredentials.web.client_id,
+            clientSecret: googleCredentials.web.client_secret,
+            callbackURL: googleCredentials.web.redirect_uris[0]
+        },
         function (accessToken, refreshToken, profile, done) {
-            User.findOrCreate({ googleId: profile.id }, function (err, user) {
-                return done(err, user);
-            });
+            const email = profile.emails[0].value;
+            let user = db.get('users').find({
+                email: email
+            }).value();
+
+            // 이미 이 email을 사용하는 유저가 있으면
+            if (user) {
+                user.googleId = profile.id;
+                db.get('users').find({
+                    id: user.id
+                }).assign(user).write();
+            }
+            else {
+                user = {
+                    id: shortid.generate(),
+                    email: email,
+                    displayName: profile.displayName,
+                    googleId: profile.id
+                };
+                db.get('users').push(user).write();
+            }
+
+            done(null, user);
         }
     ));
-    
 }

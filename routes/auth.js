@@ -107,15 +107,17 @@ router.get('/logout', (req, res, next) => {
 });
 
 
-// GET /auth/google
-// Use passport.authenticate() as route middleware to authenticate the request.  The first step in Google authentication will involve redirecting the user to google.com.  After authorization, Google will redirect the user back to this application at /auth/google/callback
+// client가 content server에게 서비스 기능 사용하게 해달라고 요청
+// login google 버튼 클릭시 실행
 router.get('/google',
-    passport.authenticate('google', { scope: ['https://www.googleapis.com/auth/plus.login'] }));
+    passport.authenticate('google', { 
+        scope: ['profile', 'email'] 
+    }));
 
-// GET /auth/google/callback
-// Use passport.authenticate() as route middleware to authenticate the request.  If authentication fails, the user will be redirected back to the login page.  Otherwise, the primary route function function will be called, which, in this example, will redirect the user to the home page.
+// 사용자 로그인 후 content server가 authentication code 생성 후
+// 사용자에게 보내면서 client (이 앱)에게 보내는 코드
 router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: '/login' }),
+    passport.authenticate('google', { failureRedirect: 'auth/login' }),
     function (req, res) {
         res.redirect('/');
     });
