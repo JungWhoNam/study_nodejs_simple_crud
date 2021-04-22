@@ -5,6 +5,8 @@ module.exports = {
     authStatusUI: function (req, res) {
         return this.authIsOwner(req) ? 
         `${req.user.email} | <a href="/auth/logout">logout</a>` : 
-        '<a href="/auth/login">login</a> | <a href="/auth/register">Register</a>';
+        `<a href="/auth/login">login</a> | 
+        <a href="/auth/register">Register</a> | 
+        <a href="/auth/google">Login with Google</a>`;
     }
 };
