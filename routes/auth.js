@@ -125,10 +125,12 @@ router.get('/google',
 // 사용자 로그인 후 content server가 authentication code 생성 후
 // 사용자에게 보내면서 client (이 앱)에게 보내는 코드
 router.get('/google/callback',
-    passport.authenticate('google', { failureRedirect: 'auth/login' }),
-    function (req, res) {
-        res.redirect('/');
-    });
+    passport.authenticate('google', {
+        successRedirect: '/',
+        failureRedirect: '/auth/login',
+        failureFlash: true,
+        successFlash: true
+    }));
 
 
 // facebook은 scope를 여기서 설정하지 않고 FacebookStrategy에 profileFields에서 설정
@@ -137,7 +139,9 @@ router.get('/facebook', passport.authenticate('facebook'));
 router.get('/facebook/callback',
     passport.authenticate('facebook', {
         successRedirect: '/',
-        failureRedirect: '/auth/login'
+        failureRedirect: '/auth/login',
+        failureFlash: true,
+        successFlash: true
     }));
 
 module.exports = router;

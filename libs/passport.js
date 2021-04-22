@@ -90,16 +90,49 @@ module.exports = function () {
                 db.get('users').push(user).write();
             }
 
-            done(null, user);
+            return done(null, user, {
+                message: 'Welcome.'
+            });
         }
     ));
 
     // https://stackoverflow.com/questions/22880876/passport-facebook-authentication-is-not-providing-email-for-all-facebook-account
     // need to pass profileFields to get 'email' scope value
+    // unlike google, facebook user might have unverified email address (which does not show up in the query)
     passport.use(new FacebookStrategy(
         credentials.facebook,
         function (accessToken, refreshToken, profile, done) {
-            console.log('facebook', accessToken, refreshToken, profile);
+            if (!profile.emails) {
+                return done(null, false, {
+                    message: 'You don\'t have an email associated with your Facebook account.'
+                });
+            }
+
+            const email = profile.emails[0].value;
+            let user = db.get('users').find({
+                email: email
+            }).value();
+
+            // 이미 이 email을 사용하는 유저가 있으면
+            if (user) {
+                user.facebookId = profile.id;
+                db.get('users').find({
+                    id: user.id
+                }).assign(user).write();
+            }
+            else {
+                user = {
+                    id: shortid.generate(),
+                    email: email,
+                    displayName: profile.displayName,
+                    facebookId: profile.id
+                };
+                db.get('users').push(user).write();
+            }
+
+            return done(null, user, {
+                message: 'Welcome.'
+            });
         }
     ));
 }
